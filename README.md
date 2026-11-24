@@ -87,6 +87,24 @@ Le projet Supabase gratuit suffit largement pour ce usage. Garde la clé `sb_sec
 - Voit le compte à rebours et la liste des membres ayant payé.
 - Peut changer son mot de passe dans **Mon compte**.
 
+## Installation sur téléphone (PWA)
+
+L’application est une **PWA** : elle peut être ajoutée à l’écran d’accueil et s’ouvre en plein écran, sans barre du navigateur.
+
+### Android / Chrome
+
+1. Ouvre <https://cotisationtournoi.vercel.app> dans Chrome.
+2. Menu ⋮ → **Ajouter à l’écran d’accueil** (ou **Installer l’application**).
+3. Confirme.
+
+### iPhone / Safari
+
+1. Ouvre <https://cotisationtournoi.vercel.app> dans Safari.
+2. Bouton **Partager** → **Sur l’écran d’accueil**.
+3. Confirme.
+
+⚠️ Aucune donnée n’est mise en cache hors ligne : la connexion Internet reste nécessaire pour voir les paiements à jour.
+
 ## Import en masse
 
 Format accepté (séparateur `;`, `,` ou tabulation) :
