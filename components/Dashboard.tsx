@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Accounting from "@/components/Accounting";
 import Countdown from "@/components/Countdown";
 import AdminPanel from "@/components/AdminPanel";
@@ -22,18 +22,63 @@ export default function Dashboard({ user, onLogout }: Props) {
   const [view, setView] = useState<"cotisations" | "comptabilite">("cotisations");
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "" });
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const refreshInFlight = useRef<Promise<void> | null>(null);
 
-  const refresh = useCallback(async () => {
-    const result = await api<DashboardData>("/api/dashboard");
-    setData(result);
+  const refresh = useCallback(() => {
+    if (refreshInFlight.current) return refreshInFlight.current;
+
+    const request = api<DashboardData>("/api/dashboard").then((result) => {
+      setData(result);
+      setLastUpdated(new Date());
+    });
+
+    refreshInFlight.current = request;
+    request
+      .catch(() => undefined)
+      .finally(() => {
+        refreshInFlight.current = null;
+      });
+
+    return request;
   }, []);
 
   useEffect(() => {
     refresh().catch((err) => setError(err instanceof Error ? err.message : "Chargement impossible."));
-    const timer = window.setInterval(() => {
-      refresh().catch(() => undefined);
-    }, 30_000);
-    return () => window.clearInterval(timer);
+
+    let timer: number | undefined;
+
+    function start() {
+      if (timer !== undefined) return;
+      timer = window.setInterval(() => {
+        if (document.visibilityState === "visible") refresh().catch(() => undefined);
+      }, 10_000);
+    }
+
+    function stop() {
+      if (timer === undefined) return;
+      window.clearInterval(timer);
+      timer = undefined;
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        refresh().catch(() => undefined);
+        start();
+      } else {
+        stop();
+      }
+    }
+
+    start();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", onVisibilityChange);
+
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", onVisibilityChange);
+    };
   }, [refresh]);
 
   function flash(text: string) {
@@ -102,6 +147,31 @@ export default function Dashboard({ user, onLogout }: Props) {
 
         <div className="topbar-right">
           <Countdown deadline={data.settings.deadline} />
+          <div
+            className="live-chip"
+            title="Actualisation automatique toutes les 10 secondes"
+            aria-label="Données en direct"
+          >
+            <span className="live-dot" />
+            <span>En direct</span>
+            {lastUpdated && (
+              <span className="live-time">
+                {lastUpdated.toLocaleTimeString("fr-FR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                })}
+              </span>
+            )}
+            <button
+              type="button"
+              className="live-refresh"
+              onClick={() => refresh().catch(() => undefined)}
+              aria-label="Actualiser maintenant"
+            >
+              ↻
+            </button>
+          </div>
           <div className="user-chip">
             <div className="avatar">{user.fullName.slice(0, 2).toUpperCase()}</div>
             <div>
@@ -196,7 +266,9 @@ export default function Dashboard({ user, onLogout }: Props) {
               <div className="card-head">
                 <div>
                   <h2>Membres ayant payé</h2>
-                  <p className="card-subtitle">Liste mise à jour en temps réel.</p>
+                  <p className="card-subtitle">
+                      Liste actualisée automatiquement toutes les 10 secondes.
+                    </p>
                 </div>
                 <span className="badge ok">{data.paid.length} payé(s)</span>
               </div>

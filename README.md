@@ -103,6 +103,10 @@ Le projet Supabase gratuit suffit largement pour ce usage. Garde la clé `sb_sec
 - Un don se saisit avec **+ Entrée** ; une dépense (transport, achat…) avec **+ Sortie**.
 - Le solde global = total des entrées − total des sorties.
 
+## Mise à jour automatique
+
+Les données du tableau de bord et du journal sont actualisées toutes les **10 secondes** tant que l’onglet du navigateur est ouvert. L’indicateur **En direct** affiche l’heure de la dernière mise à jour ; le bouton ↻ permet de forcer une actualisation. Lorsque l’onglet est en arrière-plan, l’actualisation est suspendue et reprend dès le retour sur l’application. Aucun abonnement payant n’est nécessaire.
+
 ## Installation sur téléphone (PWA)
 
 L’application est une **PWA** : elle peut être ajoutée à l’écran d’accueil et s’ouvre en plein écran, sans barre du navigateur.

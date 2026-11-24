@@ -82,6 +82,47 @@ a { color: var(--green-700); }
 .countdown-label { font-weight: 800; color: #ffe08a; font-size: 13px; }
 .countdown-time { font-variant-numeric: tabular-nums; font-size: 12px; opacity: 0.9; }
 
+.live-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.65);
+  animation: live-pulse 2s infinite;
+}
+@keyframes live-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.65); }
+  70% { box-shadow: 0 0 0 7px rgba(74, 222, 128, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+}
+.live-time { font-variant-numeric: tabular-nums; opacity: 0.85; font-weight: 600; }
+.live-refresh {
+  border: 0;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: white;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 14px;
+  line-height: 1;
+}
+.live-refresh:hover { background: rgba(255, 255, 255, 0.28); }
+
 .user-chip {
   display: flex;
   align-items: center;
@@ -379,6 +420,7 @@ textarea { min-height: 110px; resize: vertical; font-family: ui-monospace, SFMon
   .login-hero h1 { font-size: 30px; }
   .topbar { padding: 16px; }
   .container { padding: 20px 14px 48px; }
+  .live-time { display: none; }
 }
 
 .modal-backdrop {
