@@ -26,12 +26,27 @@ export async function exportPdf(rows: Member[], settings: Settings, kind: "paid"
     14,
     30,
   );
-  doc.text(`Montant total : ${formatMoney(rows.reduce((sum, m) => sum + m.amount, 0))}`, 14, 35);
+  const totalLabel = kind === "paid" ? "Total versé" : "Reste à percevoir";
+  const totalAmount =
+    kind === "paid"
+      ? rows.reduce((sum, m) => sum + m.paidAmount, 0)
+      : rows.reduce((sum, m) => sum + m.remainingAmount, 0);
+  doc.text(`${totalLabel} : ${formatMoney(totalAmount)}`, 14, 35);
 
   const columns =
     kind === "paid"
       ? ["N°", "Nom", "Téléphone", "Catégorie", "Montant payé", "Date paiement", "Référence"]
-      : ["N°", "Nom", "Téléphone", "Catégorie", "Montant dû", "Statut", "Inscription"];
+      : [
+          "N°",
+          "Nom",
+          "Téléphone",
+          "Catégorie",
+          "Montant dû",
+          "Déjà payé",
+          "Reste",
+          "Statut",
+          "Inscription",
+        ];
 
   const body = rows.map((member, index) =>
     kind === "paid"
@@ -40,7 +55,7 @@ export async function exportPdf(rows: Member[], settings: Settings, kind: "paid"
           member.fullName,
           member.phone,
           member.categoryName,
-          formatMoney(member.payment?.amount ?? member.amount),
+          formatMoney(member.paidAmount),
           formatDate(member.payment?.paidAt),
           member.payment?.reference ?? "—",
         ]
@@ -50,7 +65,9 @@ export async function exportPdf(rows: Member[], settings: Settings, kind: "paid"
           member.phone,
           member.categoryName,
           formatMoney(member.amount),
-          "En attente",
+          formatMoney(member.paidAmount),
+          formatMoney(member.remainingAmount),
+          member.status === "partial" ? "Acompte" : "En attente",
           formatDate(member.createdAt),
         ],
   );

@@ -16,8 +16,9 @@ export async function GET() {
     ]);
 
     const isAdmin = user.role === "admin";
-    const paid = allMembers.filter((m) => m.payment);
-    const remaining = allMembers.filter((m) => !m.payment);
+    // Un acompte ne compte pas comme payé : il reste dans la liste des restants.
+    const paid = allMembers.filter((m) => m.status === "paid");
+    const remaining = allMembers.filter((m) => m.status !== "paid");
 
     return NextResponse.json({
       user,

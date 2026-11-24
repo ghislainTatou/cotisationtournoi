@@ -70,14 +70,26 @@ export function csvSafe(value: string | number | null | undefined): string {
 }
 
 export function exportMembersCsv(rows: Member[], settings: Settings): void {
-  const header = ["Nom", "Téléphone", "Catégorie", "Montant", "Statut", "Date paiement", "Référence"];
+  const header = [
+    "Nom",
+    "Téléphone",
+    "Catégorie",
+    "Montant dû",
+    "Déjà payé",
+    "Reste",
+    "Statut",
+    "Date paiement",
+    "Référence",
+  ];
   const lines = rows.map((m) =>
     [
       m.fullName,
       m.phone,
       m.categoryName,
       m.amount,
-      m.payment ? "Payé" : "En attente",
+      m.paidAmount,
+      m.remainingAmount,
+      m.status === "paid" ? "Payé" : m.status === "partial" ? "Acompte" : "En attente",
       m.payment?.paidAt ?? "",
       m.payment?.reference ?? "",
     ]

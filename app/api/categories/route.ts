@@ -49,7 +49,8 @@ export async function PATCH(request: Request) {
     if (!body?.id) return errorResponse("Identifiant manquant.", 400);
 
     const categories = await getCategories();
-    if (!categories.some((c) => c.id === body.id)) return errorResponse("Catégorie introuvable.", 404);
+    const previous = categories.find((c) => c.id === body.id);
+    if (!previous) return errorResponse("Catégorie introuvable.", 404);
 
     const update: Record<string, unknown> = {};
     if (body.name !== undefined) {
@@ -66,9 +67,11 @@ export async function PATCH(request: Request) {
     const { error } = await db().from("categories").update(update).eq("id", body.id);
     if (error) throw error;
 
-    // Garde les paiements déjà enregistrés cohérents avec le nouveau tarif.
-    if (update.amount !== undefined) {
-      const { data: members, error: membersError } = await db()
+    // Seuls les paiements complets suivent le nouveau tarif : les acomptes
+    // restent inchangés pour ne pas perdre le montant déjà versé.
+    if (update.amount !== undefined && Number(update.amount) !== previous.amount) {
+      const supabase = db();
+      const { data: members, error: membersError } = await supabase
         .from("members")
         .select("id")
         .eq("category_id", body.id);
@@ -76,11 +79,31 @@ export async function PATCH(request: Request) {
 
       const memberIds = (members ?? []).map((row) => String(row.id));
       if (memberIds.length) {
-        const { error: paymentsError } = await db()
+        const { data: payments, error: paymentsError } = await supabase
           .from("payments")
-          .update({ amount: update.amount })
+          .select("member_id, amount")
           .in("member_id", memberIds);
         if (paymentsError) throw paymentsError;
+
+        const fullPaymentIds = (payments ?? [])
+          .filter((row) => Number(row.amount) >= previous.amount)
+          .map((row) => String(row.member_id));
+
+        if (fullPaymentIds.length) {
+          if (Number(update.amount) === 0) {
+            const { error: deleteError } = await supabase
+              .from("payments")
+              .delete()
+              .in("member_id", fullPaymentIds);
+            if (deleteError) throw deleteError;
+          } else {
+            const { error: updateError } = await supabase
+              .from("payments")
+              .update({ amount: update.amount })
+              .in("member_id", fullPaymentIds);
+            if (updateError) throw updateError;
+          }
+        }
       }
     }
 

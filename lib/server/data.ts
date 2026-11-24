@@ -87,6 +87,16 @@ export async function getMembers(): Promise<Member[]> {
     const category = categoryId ? categories.get(categoryId) : undefined;
     const payment = payments.get(id) ?? null;
 
+    const expectedAmount = category?.amount ?? 0;
+    const paidAmount = payment?.amount ?? 0;
+    const remainingAmount = Math.max(0, expectedAmount - paidAmount);
+    const status =
+      paidAmount >= expectedAmount && (expectedAmount > 0 || paidAmount > 0)
+        ? "paid"
+        : paidAmount > 0
+          ? "partial"
+          : "pending";
+
     return {
       id,
       phone: String(row.phone),
@@ -94,7 +104,10 @@ export async function getMembers(): Promise<Member[]> {
       role: row.role === "admin" ? "admin" : "member",
       categoryId,
       categoryName: category?.name ?? "Non catégorisé",
-      amount: payment?.amount ?? category?.amount ?? 0,
+      amount: expectedAmount,
+      paidAmount,
+      remainingAmount,
+      status,
       createdAt: String(row.created_at),
       payment,
     };
@@ -102,12 +115,15 @@ export async function getMembers(): Promise<Member[]> {
 }
 
 export function computeStats(members: Member[]): Stats {
-  const paid = members.filter((m) => m.payment);
+  const paid = members.filter((m) => m.status === "paid");
+  const partial = members.filter((m) => m.status === "partial");
   return {
     total: members.length,
     paid: paid.length,
+    partial: partial.length,
+    // Les acomptes restent dans la liste des "restants" jusqu'au solde complet.
     remaining: members.length - paid.length,
-    collected: paid.reduce((sum, m) => sum + (m.payment?.amount ?? 0), 0),
+    collected: members.reduce((sum, m) => sum + m.paidAmount, 0),
     expected: members.reduce((sum, m) => sum + m.amount, 0),
   };
 }

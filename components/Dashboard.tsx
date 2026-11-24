@@ -155,12 +155,12 @@ export default function Dashboard({ user, onLogout }: Props) {
           <div className="stat-card green">
             <div className="stat-label">Ont payé</div>
             <div className="stat-value">{data.stats.paid}</div>
-            <div className="stat-note">cotisation enregistrée</div>
+            <div className="stat-note">cotisation entièrement réglée</div>
           </div>
           <div className="stat-card red">
             <div className="stat-label">En attente</div>
             <div className="stat-value">{data.stats.remaining}</div>
-            <div className="stat-note">avant la date limite</div>
+            <div className="stat-note">dont {data.stats.partial} acompte(s)</div>
           </div>
         </div>
 
@@ -189,7 +189,9 @@ export default function Dashboard({ user, onLogout }: Props) {
                 <div className="card-head">
                   <div>
                     <h2>Membres en attente</h2>
-                    <p className="card-subtitle">Ils n&apos;ont pas encore réglé leur cotisation.</p>
+                    <p className="card-subtitle">
+                      Ils doivent encore un solde, même s&apos;ils ont déjà versé un acompte.
+                    </p>
                   </div>
                   <span className="badge warn">{data.remaining.length} en attente</span>
                 </div>

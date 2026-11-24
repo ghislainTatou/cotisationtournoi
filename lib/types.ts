@@ -1,4 +1,5 @@
 export type Role = "admin" | "member";
+export type PaymentStatus = "pending" | "partial" | "paid";
 
 export interface SessionUser {
   id: string;
@@ -28,7 +29,13 @@ export interface Member {
   role: Role;
   categoryId: string | null;
   categoryName: string;
+  /** Tarif attendu de la catégorie. */
   amount: number;
+  /** Montant effectivement versé (0 si aucun paiement). */
+  paidAmount: number;
+  /** Solde restant à régler. */
+  remainingAmount: number;
+  status: PaymentStatus;
   createdAt: string;
   payment: Payment | null;
 }
@@ -42,6 +49,7 @@ export interface Settings {
 export interface Stats {
   total: number;
   paid: number;
+  partial: number;
   remaining: number;
   collected: number;
   expected: number;

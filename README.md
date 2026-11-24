@@ -8,7 +8,8 @@ Application Next.js gratuite pour enregistrer et suivre les cotisations du tourn
 - Compte à rebours automatique affiché pour tous : `J-4`, `J-3`, `J-2`, `J-1`, `Jour J`.
 - Date limite, nom du tournoi et catégories/tarifs entièrement paramétrables depuis l’interface admin.
 - Catégories prévues : 10 000 / 5 000 / 2 000 FCFA (modifiables).
-- Enregistrement ou annulation d’un paiement en un clic.
+- Enregistrement d’un paiement complet **ou d’un acompte**, puis complément du solde.
+- Statuts distincts : **Payé**, **Acompte**, **En attente**.
 - Ajout individuel et import en masse (`telephone;nom;categorie`).
 - Consultation de la liste des payés par les membres.
 - Export **PDF** des payés et des restants (+ export CSV).
@@ -76,7 +77,8 @@ Le projet Supabase gratuit suffit largement pour ce usage. Garde la clé `sb_sec
 
 ### Administrateur
 
-- Onglet **Gestion des membres** : ajouter, modifier, supprimer, marquer un paiement.
+- Onglet **Gestion des membres** : ajouter, modifier, supprimer un membre.
+- Bouton **Payer / Compléter** : saisir le montant versé. S’il est inférieur au tarif, l’application enregistre un **acompte** ; le reste apparaît dans la liste des restants jusqu’au solde complet.
 - Onglet **Catégories & tarifs** : changer les montants (10 000 / 5 000 / 2 000…).
 - Onglet **Paramètres** : date limite, nom du tournoi, visibilité de la liste des restants.
 - Boutons en haut : **PDF payés**, **PDF restants**, **CSV**.

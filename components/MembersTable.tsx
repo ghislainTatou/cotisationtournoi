@@ -8,12 +8,21 @@ interface Props {
   rows: Member[];
   variant: "paid" | "remaining" | "all";
   busy?: boolean;
-  onToggle?: (member: Member) => void;
+  onPay?: (member: Member) => void;
+  onCancel?: (member: Member) => void;
   onEdit?: (member: Member) => void;
   onDelete?: (member: Member) => void;
 }
 
-export default function MembersTable({ rows, variant, busy, onToggle, onEdit, onDelete }: Props) {
+export default function MembersTable({
+  rows,
+  variant,
+  busy,
+  onPay,
+  onCancel,
+  onEdit,
+  onDelete,
+}: Props) {
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -29,7 +38,7 @@ export default function MembersTable({ rows, variant, busy, onToggle, onEdit, on
 
   const showStatus = variant === "all";
   const showPaymentDate = variant === "paid" || variant === "all";
-  const showActions = Boolean(onToggle || onEdit || onDelete);
+  const showActions = Boolean(onPay || onCancel || onEdit || onDelete);
 
   return (
     <>
@@ -49,8 +58,8 @@ export default function MembersTable({ rows, variant, busy, onToggle, onEdit, on
           <strong>Aucun membre à afficher</strong>
           {rows.length === 0
             ? variant === "paid"
-              ? "Les paiements apparaîtront ici dès leur enregistrement."
-              : "Tous les membres sont à jour."
+              ? "Les cotisations entièrement réglées apparaîtront ici."
+              : "Toutes les cotisations sont réglées."
             : "Essayez une autre recherche."}
         </div>
       ) : (
@@ -61,7 +70,9 @@ export default function MembersTable({ rows, variant, busy, onToggle, onEdit, on
                 <th>Nom</th>
                 <th>Téléphone</th>
                 <th>Catégorie</th>
-                <th>Montant</th>
+                <th>Montant dû</th>
+                <th>Déjà payé</th>
+                <th>Reste</th>
                 {showPaymentDate && <th>Date paiement</th>}
                 {showStatus && <th>Statut</th>}
                 {showActions && <th style={{ textAlign: "right" }}>Actions</th>}
@@ -73,12 +84,16 @@ export default function MembersTable({ rows, variant, busy, onToggle, onEdit, on
                   <td className="name-cell">{member.fullName}</td>
                   <td className="phone-cell">{member.phone}</td>
                   <td>{member.categoryName}</td>
-                  <td>{formatMoney(member.payment?.amount ?? member.amount)}</td>
+                  <td>{formatMoney(member.amount)}</td>
+                  <td>{formatMoney(member.paidAmount)}</td>
+                  <td>{formatMoney(member.remainingAmount)}</td>
                   {showPaymentDate && <td>{formatDate(member.payment?.paidAt)}</td>}
                   {showStatus && (
                     <td>
-                      {member.payment ? (
+                      {member.status === "paid" ? (
                         <span className="badge ok">✓ Payé</span>
+                      ) : member.status === "partial" ? (
+                        <span className="badge info">Acompte</span>
                       ) : (
                         <span className="badge warn">En attente</span>
                       )}
@@ -87,18 +102,31 @@ export default function MembersTable({ rows, variant, busy, onToggle, onEdit, on
                   {showActions && (
                     <td>
                       <div className="row-actions" style={{ justifyContent: "flex-end" }}>
-                        {onToggle && (
+                        {onPay && (
                           <button
-                            className={`btn btn-sm ${member.payment ? "btn-ghost" : "btn-primary"}`}
+                            className={`btn btn-sm ${member.status === "paid" ? "btn-ghost" : "btn-primary"}`}
                             disabled={busy}
-                            onClick={() => onToggle(member)}
+                            onClick={() => onPay(member)}
                           >
-                            {member.payment ? "Annuler" : "Marquer payé"}
+                            {member.status === "paid"
+                              ? "Modifier"
+                              : member.status === "partial"
+                                ? "Compléter"
+                                : "Payer"}
+                          </button>
+                        )}
+                        {onCancel && member.payment && (
+                          <button
+                            className="btn btn-sm btn-ghost"
+                            disabled={busy}
+                            onClick={() => onCancel(member)}
+                          >
+                            Annuler
                           </button>
                         )}
                         {onEdit && (
                           <button className="btn btn-sm btn-ghost" onClick={() => onEdit(member)}>
-                            Modifier
+                            Modifier fiche
                           </button>
                         )}
                         {onDelete && (

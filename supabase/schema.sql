@@ -21,6 +21,8 @@ create table if not exists public.members (
   created_at timestamptz not null default now()
 );
 
+-- amount = montant effectivement versé. Un montant inférieur au tarif de la
+-- catégorie représente un acompte ; le solde est calculé par l'application.
 create table if not exists public.payments (
   id uuid primary key default gen_random_uuid(),
   member_id uuid not null unique references public.members(id) on delete cascade,
