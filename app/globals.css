@@ -377,6 +377,79 @@ textarea { min-height: 110px; resize: vertical; font-family: ui-monospace, SFMon
   .container { padding: 20px 14px 48px; }
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(6, 28, 17, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.modal {
+  width: min(520px, 100%);
+  max-height: calc(100vh - 36px);
+  overflow-y: auto;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 24px 70px rgba(6, 28, 17, 0.28);
+}
+
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 22px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.modal-head h2 { margin: 0 0 4px; font-size: 18px; }
+.modal-head .card-subtitle { margin: 0; }
+
+.icon-btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 16px;
+  padding: 4px 7px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.icon-btn:hover { background: #f2f5f3; color: var(--ink); }
+
+.modal-body { display: grid; gap: 16px; padding: 18px 22px; }
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px 20px;
+  border-top: 1px solid var(--line);
+}
+
+.payment-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.payment-summary > div {
+  background: var(--green-50);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.payment-summary span { display: block; font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+.payment-summary strong { font-size: 14px; color: var(--green-800); }
+
+@media (max-width: 560px) {
+  .modal-backdrop { padding: 12px; align-items: flex-end; }
+  .modal { max-height: calc(100vh - 24px); border-radius: 16px 16px 0 0; }
+  .payment-summary { grid-template-columns: 1fr; }
+  .modal-actions { flex-direction: column-reverse; }
+  .modal-actions .btn { width: 100%; }
+}
+
 @media print {
   .topbar, .tabs, .btn, .toolbar { display: none !important; }
   body { background: white; }

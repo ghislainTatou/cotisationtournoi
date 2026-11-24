@@ -5,6 +5,7 @@ import { del, patch, post } from "@/lib/client-api";
 import type { Category, DashboardData, Member, Role } from "@/lib/types";
 import { formatMoney, toLocalInputValue } from "@/lib/utils";
 import MembersTable from "@/components/MembersTable";
+import PaymentModal from "@/components/PaymentModal";
 
 interface Props {
   data: DashboardData;
@@ -42,7 +43,6 @@ export default function AdminPanel({ data, refresh }: Props) {
   const [editing, setEditing] = useState<Member | null>(null);
   const [memberForm, setMemberForm] = useState<MemberForm>(emptyMemberForm);
   const [paymentMember, setPaymentMember] = useState<Member | null>(null);
-  const [paymentForm, setPaymentForm] = useState({ amount: "", reference: "" });
   const [importText, setImportText] = useState("");
   const [importErrors, setImportErrors] = useState<string[]>([]);
   const [categoryDrafts, setCategoryDrafts] = useState<CategoryDraft[]>([]);
@@ -129,28 +129,15 @@ export default function AdminPanel({ data, refresh }: Props) {
 
   function openPayment(member: Member) {
     setPaymentMember(member);
-    setPaymentForm({
-      amount: String(member.status === "partial" ? member.remainingAmount : member.amount),
-      reference: member.payment?.reference ?? "",
-    });
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function submitPayment(event: React.FormEvent) {
-    event.preventDefault();
+  async function submitPayment(amount: number, reference: string) {
     if (!paymentMember) return;
-    const amount = Number(paymentForm.amount);
-    if (!Number.isFinite(amount) || amount < 0) {
-      setError("Montant invalide.");
-      return;
-    }
-
     await run(async () => {
       await patch(`/api/members/${paymentMember.id}`, {
-        payment: { paid: amount > 0, amount, reference: paymentForm.reference },
+        payment: { paid: amount > 0, amount, reference },
       });
       setPaymentMember(null);
-      setPaymentForm({ amount: "", reference: "" });
     }, amount > 0 ? "Paiement enregistré." : "Paiement annulé.");
   }
 
@@ -320,60 +307,12 @@ export default function AdminPanel({ data, refresh }: Props) {
           </section>
 
           {paymentMember && (
-            <section className="card">
-              <div className="card-head">
-                <div>
-                  <h2>
-                    {paymentMember.status === "partial"
-                      ? "Compléter l'acompte"
-                      : "Enregistrer un paiement"}
-                  </h2>
-                  <p className="card-subtitle">
-                    {paymentMember.fullName} · dû : {formatMoney(paymentMember.amount)} · déjà versé :{" "}
-                    {formatMoney(paymentMember.paidAmount)} · reste :{" "}
-                    {formatMoney(paymentMember.remainingAmount)}
-                  </p>
-                </div>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => {
-                    setPaymentMember(null);
-                    setPaymentForm({ amount: "", reference: "" });
-                  }}
-                >
-                  Fermer
-                </button>
-              </div>
-              <form onSubmit={submitPayment} className="form-grid">
-                <div className="field">
-                  <label>Montant versé (FCFA)</label>
-                  <input
-                    required
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={paymentForm.amount}
-                    onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                  />
-                  <span className="hint">
-                    Un montant inférieur au tarif est enregistré comme acompte. Mettez 0 pour annuler.
-                  </span>
-                </div>
-                <div className="field">
-                  <label>Référence (facultatif)</label>
-                  <input
-                    value={paymentForm.reference}
-                    onChange={(e) => setPaymentForm({ ...paymentForm, reference: e.target.value })}
-                    placeholder="Ex. Orange Money"
-                  />
-                </div>
-                <div className="field" style={{ justifyContent: "flex-end" }}>
-                  <button className="btn btn-primary" disabled={busy} type="submit">
-                    Enregistrer
-                  </button>
-                </div>
-              </form>
-            </section>
+            <PaymentModal
+              member={paymentMember}
+              busy={busy}
+              onClose={() => setPaymentMember(null)}
+              onSave={submitPayment}
+            />
           )}
 
           <section className="card">
