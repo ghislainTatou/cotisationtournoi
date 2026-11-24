@@ -1,7 +1,14 @@
 import { db } from "@/lib/server/db";
 import { hashPassword } from "@/lib/server/password";
 import { normalizePhone, isValidPhone } from "@/lib/utils";
-import type { Category, Member, Settings, Stats } from "@/lib/types";
+import type {
+  AccountingData,
+  AccountingEntry,
+  Category,
+  Member,
+  Settings,
+  Stats,
+} from "@/lib/types";
 
 type AnyRow = Record<string, unknown>;
 
@@ -126,6 +133,85 @@ export function computeStats(members: Member[]): Stats {
     collected: members.reduce((sum, m) => sum + m.paidAmount, 0),
     expected: members.reduce((sum, m) => sum + m.amount, 0),
   };
+}
+
+export async function getManualTransactions(): Promise<{
+  rows: AccountingEntry[];
+  available: boolean;
+}> {
+  const { data, error } = await db()
+    .from("transactions")
+    .select("id, kind, label, amount, observation, created_at")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    // Table pas encore créée : l'application reste utilisable et l'UI l'indique.
+    // Supabase/PostgREST renvoie PGRST205 (schéma non rafraîchi) et parfois 42P01.
+    if (
+      error.code === "42P01" ||
+      error.code === "PGRST205" ||
+      /could not find the table|does not exist/i.test(error.message ?? "")
+    ) {
+      return { rows: [], available: false };
+    }
+    throw error;
+  }
+
+  return {
+    available: true,
+    rows: (data ?? []).map((row: AnyRow) => ({
+      id: `manual-${String(row.id)}`,
+      kind: row.kind === "expense" ? "expense" : "income",
+      label: String(row.label),
+      amount: Number(row.amount),
+      observation: row.observation ? String(row.observation) : null,
+      createdAt: String(row.created_at),
+      source: "manuel",
+      manualId: String(row.id),
+    })),
+  };
+}
+
+export function buildAccounting(
+  members: Member[],
+  manual: AccountingEntry[],
+  available: boolean,
+): AccountingData {
+  const cotisations: AccountingEntry[] = members
+    .filter((member) => member.payment && member.paidAmount > 0)
+    .map((member) => {
+      const details = [
+        `Catégorie ${member.categoryName}`,
+        member.status === "partial" ? "acompte" : "paiement complet",
+        member.payment?.reference ? `Réf. ${member.payment.reference}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+      return {
+        id: `cotisation-${member.payment!.id}`,
+        kind: "income" as const,
+        label: `Cotisation — ${member.fullName}`,
+        amount: member.paidAmount,
+        observation: details,
+        createdAt: member.payment!.paidAt,
+        source: "cotisation" as const,
+        manualId: null,
+      };
+    });
+
+  const entries = [...cotisations, ...manual].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+
+  const income = entries
+    .filter((entry) => entry.kind === "income")
+    .reduce((sum, entry) => sum + entry.amount, 0);
+  const expense = entries
+    .filter((entry) => entry.kind === "expense")
+    .reduce((sum, entry) => sum + entry.amount, 0);
+
+  return { entries, income, expense, balance: income - expense, available };
 }
 
 export async function ensureAdminAccount(): Promise<void> {

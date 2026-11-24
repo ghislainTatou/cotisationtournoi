@@ -32,6 +32,18 @@ create table if not exists public.payments (
   recorded_by uuid references public.members(id) on delete set null
 );
 
+-- Journal comptable : dons et dépenses saisis manuellement.
+-- Les cotisations sont automatiquement listées comme entrées depuis payments.
+create table if not exists public.transactions (
+  id uuid primary key default gen_random_uuid(),
+  kind text not null check (kind in ('income', 'expense')),
+  label text not null,
+  amount integer not null check (amount > 0),
+  observation text,
+  recorded_by uuid references public.members(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.settings (
   id integer primary key check (id = 1),
   tournament_name text not null default 'Tournoi du 28 novembre',
@@ -62,4 +74,5 @@ create index if not exists payments_paid_at_idx on public.payments(paid_at desc)
 alter table public.categories enable row level security;
 alter table public.members enable row level security;
 alter table public.payments enable row level security;
+alter table public.transactions enable row level security;
 alter table public.settings enable row level security;

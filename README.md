@@ -12,6 +12,9 @@ Application Next.js gratuite pour enregistrer et suivre les cotisations du tourn
 - Statuts distincts : **Payé**, **Acompte**, **En attente**.
 - Ajout individuel et import en masse (`telephone;nom;categorie`).
 - Consultation de la liste des payés par les membres.
+- Onglet **Comptabilité** visible par tous : entrées, sorties et solde global.
+- Dons et dépenses ajoutés par l’administrateur avec libellé, montant et observation.
+- Les cotisations des membres apparaissent automatiquement comme entrées dans le journal.
 - Export **PDF** des payés et des restants (+ export CSV).
 - Changement de mot de passe pour chaque utilisateur.
 
@@ -32,6 +35,7 @@ Application Next.js gratuite pour enregistrer et suivre les cotisations du tourn
 
 2. Crée un projet sur [supabase.com](https://supabase.com) (plan gratuit).
 3. Dans **SQL Editor**, colle et exécute le contenu de [`supabase/schema.sql`](./supabase/schema.sql).
+   Si tu mets à jour un projet déjà installé, exécute seulement [`supabase/accounting.sql`](./supabase/accounting.sql).
 4. Récupère les identifiants du projet :
    - **URL** : bouton **Connect** du projet, ou **Project Settings → General**.
    - **Clé secrète** : **Project Settings → API Keys → Secret key** (elle commence par `sb_secret_...`).
@@ -88,6 +92,16 @@ Le projet Supabase gratuit suffit largement pour ce usage. Garde la clé `sb_sec
 - Se connecte avec son téléphone (mot de passe = téléphone tant qu’il ne l’a pas changé).
 - Voit le compte à rebours et la liste des membres ayant payé.
 - Peut changer son mot de passe dans **Mon compte**.
+- Peut consulter l’onglet **Comptabilité** (lecture seule).
+
+### Comptabilité
+
+- L’onglet **Comptabilité** est accessible à tous les utilisateurs connectés.
+- Les boutons **+ Entrée** et **+ Sortie** sont réservés à l’administrateur.
+- Chaque ligne du journal contient : date, type, libellé, observation, origine et montant.
+- Une cotisation (même partielle) crée automatiquement une entrée libellée `Cotisation — Nom du membre`. Modifier ou annuler un paiement met aussi à jour le journal.
+- Un don se saisit avec **+ Entrée** ; une dépense (transport, achat…) avec **+ Sortie**.
+- Le solde global = total des entrées − total des sorties.
 
 ## Installation sur téléphone (PWA)
 

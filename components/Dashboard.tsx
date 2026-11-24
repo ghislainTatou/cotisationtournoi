@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Accounting from "@/components/Accounting";
 import Countdown from "@/components/Countdown";
 import AdminPanel from "@/components/AdminPanel";
 import MembersTable from "@/components/MembersTable";
@@ -18,6 +19,7 @@ export default function Dashboard({ user, onLogout }: Props) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [view, setView] = useState<"cotisations" | "comptabilite">("cotisations");
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "" });
 
@@ -141,6 +143,23 @@ export default function Dashboard({ user, onLogout }: Props) {
         {notice && <div className="notice success">{notice}</div>}
         {error && <div className="notice error">{error}</div>}
 
+        <div className="tabs">
+          <button
+            className={`tab ${view === "cotisations" ? "active" : ""}`}
+            onClick={() => setView("cotisations")}
+          >
+            Cotisations
+          </button>
+          <button
+            className={`tab ${view === "comptabilite" ? "active" : ""}`}
+            onClick={() => setView("comptabilite")}
+          >
+            Comptabilité
+          </button>
+        </div>
+
+        {view === "cotisations" && (
+          <>
         <div className="stats-grid">
           <div className="stat-card green">
             <div className="stat-label">Total collecté</div>
@@ -199,6 +218,12 @@ export default function Dashboard({ user, onLogout }: Props) {
               </section>
             )}
           </>
+        )}
+          </>
+        )}
+
+        {view === "comptabilite" && (
+          <Accounting accounting={data.accounting} isAdmin={isAdmin} refresh={refresh} />
         )}
 
         <section className="card">

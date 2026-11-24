@@ -55,11 +55,35 @@ export interface Stats {
   expected: number;
 }
 
+export type AccountingKind = "income" | "expense";
+export type AccountingSource = "cotisation" | "manuel";
+
+export interface AccountingEntry {
+  id: string;
+  kind: AccountingKind;
+  label: string;
+  amount: number;
+  observation: string | null;
+  createdAt: string;
+  source: AccountingSource;
+  /** Présent pour les lignes saisies manuellement (supprimables). */
+  manualId: string | null;
+}
+
+export interface AccountingData {
+  entries: AccountingEntry[];
+  income: number;
+  expense: number;
+  balance: number;
+  available: boolean;
+}
+
 export interface DashboardData {
   user: SessionUser;
   settings: Settings;
   categories: Category[];
   stats: Stats;
+  accounting: AccountingData;
   paid: Member[];
   remaining: Member[];
   members: Member[];
