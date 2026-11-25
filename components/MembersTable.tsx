@@ -63,88 +63,171 @@ export default function MembersTable({
             : "Essayez une autre recherche."}
         </div>
       ) : (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Nom</th>
-                <th>Téléphone</th>
-                <th>Catégorie</th>
-                <th>Montant dû</th>
-                <th>Déjà payé</th>
-                <th>Reste</th>
-                {showPaymentDate && <th>Date paiement</th>}
-                {showStatus && <th>Statut</th>}
-                {showActions && <th style={{ textAlign: "right" }}>Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((member) => (
-                <tr key={member.id}>
-                  <td className="name-cell">{member.fullName}</td>
-                  <td className="phone-cell">{member.phone}</td>
-                  <td>{member.categoryName}</td>
-                  <td>{formatMoney(member.amount)}</td>
-                  <td>{formatMoney(member.paidAmount)}</td>
-                  <td>{formatMoney(member.remainingAmount)}</td>
-                  {showPaymentDate && <td>{formatDate(member.payment?.paidAt)}</td>}
-                  {showStatus && (
-                    <td>
-                      {member.status === "paid" ? (
-                        <span className="badge ok">✓ Payé</span>
-                      ) : member.status === "partial" ? (
-                        <span className="badge info">Acompte</span>
-                      ) : (
-                        <span className="badge warn">En attente</span>
-                      )}
-                    </td>
-                  )}
-                  {showActions && (
-                    <td>
-                      <div className="row-actions" style={{ justifyContent: "flex-end" }}>
-                        {onPay && (
-                          <button
-                            className={`btn btn-sm ${member.status === "paid" ? "btn-ghost" : "btn-primary"}`}
-                            disabled={busy}
-                            onClick={() => onPay(member)}
-                          >
-                            {member.status === "paid"
-                              ? "Modifier"
-                              : member.status === "partial"
-                                ? "Compléter"
-                                : "Payer"}
-                          </button>
-                        )}
-                        {onCancel && member.payment && (
-                          <button
-                            className="btn btn-sm btn-ghost"
-                            disabled={busy}
-                            onClick={() => onCancel(member)}
-                          >
-                            Annuler
-                          </button>
-                        )}
-                        {onEdit && (
-                          <button className="btn btn-sm btn-ghost" onClick={() => onEdit(member)}>
-                            Modifier fiche
-                          </button>
-                        )}
-                        {onDelete && (
-                          <button
-                            className="btn btn-sm btn-danger"
-                            disabled={busy}
-                            onClick={() => onDelete(member)}
-                          >
-                            Supprimer
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  )}
+        <div className="responsive-table">
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nom</th>
+                  <th>Téléphone</th>
+                  <th>Catégorie</th>
+                  <th>Montant dû</th>
+                  <th>Déjà payé</th>
+                  <th>Reste</th>
+                  {showPaymentDate && <th>Date paiement</th>}
+                  {showStatus && <th>Statut</th>}
+                  {showActions && <th style={{ textAlign: "right" }}>Actions</th>}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.map((member) => (
+                  <tr key={member.id}>
+                    <td className="name-cell">{member.fullName}</td>
+                    <td className="phone-cell">{member.phone}</td>
+                    <td>{member.categoryName}</td>
+                    <td>{formatMoney(member.amount)}</td>
+                    <td>{formatMoney(member.paidAmount)}</td>
+                    <td>{formatMoney(member.remainingAmount)}</td>
+                    {showPaymentDate && <td>{formatDate(member.payment?.paidAt)}</td>}
+                    {showStatus && (
+                      <td>
+                        {member.status === "paid" ? (
+                          <span className="badge ok">✓ Payé</span>
+                        ) : member.status === "partial" ? (
+                          <span className="badge info">Acompte</span>
+                        ) : (
+                          <span className="badge warn">En attente</span>
+                        )}
+                      </td>
+                    )}
+                    {showActions && (
+                      <td>
+                        <div className="row-actions" style={{ justifyContent: "flex-end" }}>
+                          {onPay && (
+                            <button
+                              className={`btn btn-sm ${member.status === "paid" ? "btn-ghost" : "btn-primary"}`}
+                              disabled={busy}
+                              onClick={() => onPay(member)}
+                            >
+                              {member.status === "paid"
+                                ? "Modifier"
+                                : member.status === "partial"
+                                  ? "Compléter"
+                                  : "Payer"}
+                            </button>
+                          )}
+                          {onCancel && member.payment && (
+                            <button
+                              className="btn btn-sm btn-ghost"
+                              disabled={busy}
+                              onClick={() => onCancel(member)}
+                            >
+                              Annuler
+                            </button>
+                          )}
+                          {onEdit && (
+                            <button className="btn btn-sm btn-ghost" onClick={() => onEdit(member)}>
+                              Modifier fiche
+                            </button>
+                          )}
+                          {onDelete && (
+                            <button
+                              className="btn btn-sm btn-danger"
+                              disabled={busy}
+                              onClick={() => onDelete(member)}
+                            >
+                              Supprimer
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mobile-cards">
+            {filtered.map((member) => (
+              <div className="data-card" key={member.id}>
+                <span className="data-card-top">
+                  <span className="data-card-title">{member.fullName}</span>
+                  <span className={`data-card-amount ${member.status}`}>
+                    {formatMoney(member.paidAmount)}
+                  </span>
+                </span>
+                <span className="data-card-meta">
+                  <span className="origin-dot category">{member.categoryName}</span>
+                  <span
+                    className={`badge ${
+                      member.status === "paid"
+                        ? "ok"
+                        : member.status === "partial"
+                          ? "info"
+                          : "warn"
+                    }`}
+                  >
+                    {member.status === "paid"
+                      ? "✓ Payé"
+                      : member.status === "partial"
+                        ? "Acompte"
+                        : "En attente"}
+                  </span>
+                  <span className="phone-cell">{member.phone}</span>
+                </span>
+                <span className="data-card-detail">
+                  {member.status === "paid"
+                    ? `Solde réglé · ${formatMoney(member.amount)}`
+                    : `Reste ${formatMoney(member.remainingAmount)}`}
+                  {member.payment?.reference ? ` · Réf. ${member.payment.reference}` : ""}
+                  {showPaymentDate && member.payment
+                    ? ` · ${formatDate(member.payment.paidAt)}`
+                    : ""}
+                </span>
+                {showActions && (
+                  <span className="data-card-actions">
+                    {onPay && (
+                      <button
+                        className={`btn btn-sm ${member.status === "paid" ? "btn-ghost" : "btn-primary"}`}
+                        disabled={busy}
+                        onClick={() => onPay(member)}
+                      >
+                        {member.status === "paid"
+                          ? "Modifier"
+                          : member.status === "partial"
+                            ? "Compléter"
+                            : "Payer"}
+                      </button>
+                    )}
+                    {onCancel && member.payment && (
+                      <button
+                        className="btn btn-sm btn-ghost"
+                        disabled={busy}
+                        onClick={() => onCancel(member)}
+                      >
+                        Annuler
+                      </button>
+                    )}
+                    {onEdit && (
+                      <button className="btn btn-sm btn-ghost" onClick={() => onEdit(member)}>
+                        Modifier fiche
+                      </button>
+                    )}
+                    {onDelete && (
+                      <button
+                        className="btn btn-sm btn-danger"
+                        disabled={busy}
+                        onClick={() => onDelete(member)}
+                      >
+                        Supprimer
+                      </button>
+                    )}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </>

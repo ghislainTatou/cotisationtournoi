@@ -290,6 +290,104 @@ tbody tr:hover { background: #fbfdfb; }
 .amount-in { color: var(--green-700); font-weight: 700; white-space: nowrap; }
 .amount-out { color: var(--danger); font-weight: 700; white-space: nowrap; }
 
+/* Vues cartes : mêmes informations que le tableau, mais hiérarchisées pour l'écran tactile.
+   Ordre de lecture voulu : montant (droite, gros, coloré) → titre → origine → détail. */
+.mobile-cards { display: none; gap: 10px; }
+
+.data-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  padding: 13px 14px;
+  box-shadow: 0 2px 10px rgba(18, 61, 36, 0.05);
+}
+
+.data-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.data-card-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.data-card-amount {
+  display: block;
+  font-size: 22px;
+  font-weight: 850;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-card-amount.income, .data-card-amount.paid { color: var(--green-700); }
+.data-card-amount.expense { color: var(--danger); }
+.data-card-amount.partial { color: #a16207; }
+.data-card-amount.pending { color: var(--muted); }
+
+.data-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 9px;
+}
+
+.origin-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 750;
+  color: var(--muted);
+}
+
+.origin-dot::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: 0 0 auto;
+}
+
+.origin-dot.cotisation, .origin-dot.category { color: #0284c7; }
+.origin-dot.apport { color: #7e22ce; }
+.origin-dot.manuel { color: #b45309; }
+
+.data-card-detail {
+  display: block;
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.data-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.data-card-actions .btn { flex: 1 1 auto; }
+
+.detail-value { font-size: 14px; font-weight: 750; margin: 0 0 16px; word-break: break-word; }
+.detail-label { font-size: 11px; font-weight: 750; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+
 .btn {
   border: 1px solid transparent;
   border-radius: 10px;
@@ -505,6 +603,11 @@ textarea { min-height: 110px; resize: vertical; font-family: ui-monospace, SFMon
 .surplus-option:disabled { opacity: 0.6; cursor: default; }
 .surplus-option-title { font-weight: 750; color: var(--ink); font-size: 14px; }
 .surplus-option-detail { font-size: 12px; color: var(--muted); line-height: 1.45; }
+
+@media (max-width: 760px) {
+  .responsive-table .table-wrap { display: none; }
+  .responsive-table .mobile-cards { display: grid; }
+}
 
 @media (max-width: 560px) {
   .modal-backdrop { padding: 12px; align-items: flex-end; }

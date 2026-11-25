@@ -14,9 +14,16 @@ interface Props {
   refresh: () => Promise<void>;
 }
 
+const sourceLabels: Record<AccountingEntry["source"], string> = {
+  cotisation: "Auto",
+  apport: "Apport",
+  manuel: "Manuel",
+};
+
 export default function Accounting({ accounting, settings, isAdmin, refresh }: Props) {
   const [formKind, setFormKind] = useState<AccountingKind | null>(null);
   const [filter, setFilter] = useState<"all" | AccountingKind>("all");
+  const [detail, setDetail] = useState<AccountingEntry | null>(null);
   const [busy, setBusy] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [notice, setNotice] = useState("");
@@ -201,73 +208,167 @@ export default function Accounting({ accounting, settings, isAdmin, refresh }: P
             )}
           </div>
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Type</th>
-                  <th>Libellé</th>
-                  <th>Observation</th>
-                  <th>Origine</th>
-                  <th style={{ textAlign: "right" }}>Montant</th>
-                  {isAdmin && <th style={{ textAlign: "right" }}>Actions</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {visibleEntries.map((entry) => (
-                  <tr key={entry.id}>
-                    <td className="phone-cell">{formatDate(entry.createdAt)}</td>
-                    <td>
-                      <span className={`badge ${entry.kind === "income" ? "ok" : "expense"}`}>
-                        {entry.kind === "income" ? "Entrée" : "Sortie"}
-                      </span>
-                    </td>
-                    <td className="name-cell">{entry.label}</td>
-                    <td>{entry.observation ?? "—"}</td>
-                    <td>
-                      <span
-                        className={`badge ${
-                          entry.source === "cotisation"
-                            ? "info"
-                            : entry.source === "apport"
-                              ? "apport"
-                              : "warn"
-                        }`}
-                      >
-                        {entry.source === "cotisation"
-                          ? "Auto"
-                          : entry.source === "apport"
-                            ? "Apport"
-                            : "Manuel"}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: "right" }}>
-                      <span className={entry.kind === "income" ? "amount-in" : "amount-out"}>
-                        {entry.kind === "income" ? "+" : "−"}
-                        {formatMoney(entry.amount)}
-                      </span>
-                    </td>
-                    {isAdmin && (
-                      <td style={{ textAlign: "right" }}>
-                        {entry.manualId && (
-                          <button
-                            className="btn btn-sm btn-danger"
-                            disabled={busy}
-                            onClick={() => remove(entry)}
-                          >
-                            Supprimer
-                          </button>
-                        )}
-                      </td>
-                    )}
+          <div className="responsive-table">
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Libellé</th>
+                    <th>Observation</th>
+                    <th>Origine</th>
+                    <th style={{ textAlign: "right" }}>Montant</th>
+                    {isAdmin && <th style={{ textAlign: "right" }}>Actions</th>}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {visibleEntries.map((entry) => (
+                    <tr key={entry.id}>
+                      <td className="phone-cell">{formatDate(entry.createdAt)}</td>
+                      <td>
+                        <span className={`badge ${entry.kind === "income" ? "ok" : "expense"}`}>
+                          {entry.kind === "income" ? "Entrée" : "Sortie"}
+                        </span>
+                      </td>
+                      <td className="name-cell">{entry.label}</td>
+                      <td>{entry.observation ?? "—"}</td>
+                      <td>
+                        <span
+                          className={`badge ${
+                            entry.source === "cotisation"
+                              ? "info"
+                              : entry.source === "apport"
+                                ? "apport"
+                                : "warn"
+                          }`}
+                        >
+                          {sourceLabels[entry.source]}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        <span className={entry.kind === "income" ? "amount-in" : "amount-out"}>
+                          {entry.kind === "income" ? "+" : "−"}
+                          {formatMoney(entry.amount)}
+                        </span>
+                      </td>
+                      {isAdmin && (
+                        <td style={{ textAlign: "right" }}>
+                          {entry.manualId && (
+                            <button
+                              className="btn btn-sm btn-danger"
+                              disabled={busy}
+                              onClick={() => remove(entry)}
+                            >
+                              Supprimer
+                            </button>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mobile-cards">
+              {visibleEntries.map((entry) => (
+                <button
+                  type="button"
+                  className="data-card"
+                  key={entry.id}
+                  onClick={() => setDetail(entry)}
+                >
+                  <span className="data-card-top">
+                    <span className="data-card-title">{entry.label}</span>
+                    <span className={`data-card-amount ${entry.kind}`}>
+                      {entry.kind === "income" ? "+" : "−"}
+                      {formatMoney(entry.amount)}
+                    </span>
+                  </span>
+                  <span className="data-card-meta">
+                    <span className={`origin-dot ${entry.source}`}>
+                      {sourceLabels[entry.source]}
+                    </span>
+                    <span className={`badge ${entry.kind === "income" ? "ok" : "expense"}`}>
+                      {entry.kind === "income" ? "Entrée" : "Sortie"}
+                    </span>
+                    <span className="phone-cell">{formatDate(entry.createdAt)}</span>
+                  </span>
+                  <span className="data-card-detail">
+                    {entry.observation || "Aucune observation"}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </section>
+
+      {detail && (
+        <div
+          className="modal-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setDetail(null);
+          }}
+        >
+          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="accounting-detail-title">
+            <div className="modal-head">
+              <div>
+                <h2 id="accounting-detail-title">{detail.label}</h2>
+                <p className="card-subtitle">{formatDate(detail.createdAt)}</p>
+              </div>
+              <button type="button" className="icon-btn" aria-label="Fermer" onClick={() => setDetail(null)}>
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="payment-summary">
+                <div>
+                  <span>Type</span>
+                  <strong>{detail.kind === "income" ? "Entrée" : "Sortie"}</strong>
+                </div>
+                <div>
+                  <span>Origine</span>
+                  <strong>{sourceLabels[detail.source]}</strong>
+                </div>
+                <div>
+                  <span>Montant</span>
+                  <strong className={detail.kind === "income" ? "amount-in" : "amount-out"}>
+                    {detail.kind === "income" ? "+" : "−"}
+                    {formatMoney(detail.amount)}
+                  </strong>
+                </div>
+              </div>
+
+              <p className="detail-label">Observation</p>
+              <p className="detail-value">{detail.observation || "Aucune observation."}</p>
+
+              {isAdmin && detail.manualId && (
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  disabled={busy}
+                  onClick={() => {
+                    const entry = detail;
+                    setDetail(null);
+                    void remove(entry);
+                  }}
+                >
+                  Supprimer cette ligne
+                </button>
+              )}
+            </div>
+
+            <div className="modal-actions">
+              <button type="button" className="btn btn-ghost" onClick={() => setDetail(null)}>
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {formKind && (
         <AccountingModal
