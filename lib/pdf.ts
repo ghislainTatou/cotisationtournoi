@@ -57,7 +57,7 @@ export async function exportPdf(rows: Member[], settings: Settings, kind: "paid"
           member.categoryName,
           formatMoney(member.paidAmount),
           formatDate(member.payment?.paidAt),
-          member.payment?.reference ?? "—",
+          member.payment?.reference ?? "-",
         ]
       : [
           String(index + 1),
@@ -108,7 +108,7 @@ export async function exportAccountingPdf(
   );
   const period =
     sorted.length > 0
-      ? `${formatDate(sorted[0].createdAt)} → ${formatDate(sorted[sorted.length - 1].createdAt)}`
+      ? `${formatDate(sorted[0].createdAt)} -> ${formatDate(sorted[sorted.length - 1].createdAt)}`
       : "Aucun mouvement";
 
   doc.setFontSize(17);
@@ -140,9 +140,9 @@ export async function exportAccountingPdf(
     formatDate(entry.createdAt),
     entry.kind === "income" ? "Entrée" : "Sortie",
     entry.label,
-    entry.observation ?? "—",
+    entry.observation ?? "-",
     entry.source === "cotisation" ? "Cotisation" : "Manuel",
-    `${entry.kind === "income" ? "+" : "−"}${formatMoney(entry.amount)}`,
+    `${entry.kind === "income" ? "+" : "-"}${formatMoney(entry.amount)}`,
   ]);
 
   autoTable(doc, {

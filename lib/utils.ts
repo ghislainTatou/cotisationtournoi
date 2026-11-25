@@ -9,7 +9,10 @@ export function isValidPhone(value: string): boolean {
 }
 
 export function formatMoney(value: number): string {
-  return `${new Intl.NumberFormat("fr-FR").format(value)} FCFA`;
+  // La police standard des PDF ne connaît pas l'espace insécable fine (U+202F)
+  // utilisée par Intl en français : on la remplace par une espace normale.
+  const amount = new Intl.NumberFormat("fr-FR").format(value).replace(/[\u202f\u00a0]/g, " ");
+  return `${amount} FCFA`;
 }
 
 export function formatDate(value: string | null | undefined): string {
