@@ -30,6 +30,8 @@ interface CategoryDraft {
 
 interface SurplusContext {
   member: Member;
+  /** Montant total qui sera enregistré, après éventuel ajout d'un acompte. */
+  paidAmount: number;
   categoryAmount: number;
   form?: MemberForm;
   payment?: { amount: number; reference: string };
@@ -51,6 +53,7 @@ export default function AdminPanel({ data, refresh }: Props) {
   const [editing, setEditing] = useState<Member | null>(null);
   const [memberForm, setMemberForm] = useState<MemberForm>(emptyMemberForm);
   const [paymentMember, setPaymentMember] = useState<Member | null>(null);
+  const [paymentMode, setPaymentMode] = useState<"topup" | "total">("total");
   const [surplus, setSurplus] = useState<SurplusContext | null>(null);
   const [importText, setImportText] = useState("");
   const [importErrors, setImportErrors] = useState<string[]>([]);
@@ -131,6 +134,7 @@ export default function AdminPanel({ data, refresh }: Props) {
       if (category && category.amount > 0 && editing.paidAmount > category.amount) {
         setSurplus({
           member: editing,
+          paidAmount: editing.paidAmount,
           categoryAmount: category.amount,
           form: { ...memberForm },
         });
@@ -151,16 +155,22 @@ export default function AdminPanel({ data, refresh }: Props) {
 
   function openPayment(member: Member) {
     setPaymentMember(member);
+    setPaymentMode(member.status === "partial" ? "topup" : "total");
   }
 
-  async function submitPayment(amount: number, reference: string) {
+  async function submitPayment(enteredAmount: number, reference: string) {
     if (!paymentMember) return;
+
+    // « Compléter » ajoute au déjà versé ; « Payer » / « Modifier » remplacent le total.
+    const amount =
+      paymentMode === "topup" ? paymentMember.paidAmount + enteredAmount : enteredAmount;
 
     const category = data.categories.find((c) => c.id === paymentMember.categoryId);
     const categoryAmount = category?.amount ?? paymentMember.amount;
     if (categoryAmount > 0 && amount > categoryAmount) {
       setSurplus({
         member: paymentMember,
+        paidAmount: amount,
         categoryAmount,
         payment: { amount, reference },
       });
@@ -381,6 +391,7 @@ export default function AdminPanel({ data, refresh }: Props) {
           {paymentMember && (
             <PaymentModal
               member={paymentMember}
+              mode={paymentMode}
               busy={busy}
               onClose={() => setPaymentMember(null)}
               onSave={submitPayment}
@@ -544,7 +555,7 @@ export default function AdminPanel({ data, refresh }: Props) {
       {surplus && (
         <SurplusModal
           memberName={surplus.member.fullName}
-          paidAmount={surplus.member.paidAmount}
+          paidAmount={surplus.paidAmount}
           categoryAmount={surplus.categoryAmount}
           busy={busy}
           onClose={() => setSurplus(null)}

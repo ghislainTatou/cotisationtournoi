@@ -7,13 +7,16 @@ import { formatMoney } from "@/lib/utils";
 interface Props {
   member: Member;
   busy: boolean;
+  /** "topup" : le montant saisi s'ajoute à l'acompte ; "total" : il remplace le montant enregistré. */
+  mode: "topup" | "total";
   onClose: () => void;
   onSave: (amount: number, reference: string) => void | Promise<void>;
 }
 
-export default function PaymentModal({ member, busy, onClose, onSave }: Props) {
+export default function PaymentModal({ member, busy, mode, onClose, onSave }: Props) {
+  const isTopup = mode === "topup";
   const [amount, setAmount] = useState(
-    String(member.status === "partial" ? member.remainingAmount : member.amount),
+    String(isTopup ? member.remainingAmount : member.amount),
   );
   const [reference, setReference] = useState(member.payment?.reference ?? "");
   const amountRef = useRef<HTMLInputElement>(null);
@@ -41,12 +44,11 @@ export default function PaymentModal({ member, busy, onClose, onSave }: Props) {
     await onSave(value, reference);
   }
 
-  const title =
-    member.status === "partial"
-      ? "Compléter l'acompte"
-      : member.status === "paid"
-        ? "Modifier le paiement"
-        : "Enregistrer un paiement";
+  const title = isTopup
+    ? "Compléter l'acompte"
+    : member.status === "paid"
+      ? "Modifier le paiement"
+      : "Enregistrer un paiement";
 
   return (
     <div
@@ -81,10 +83,18 @@ export default function PaymentModal({ member, busy, onClose, onSave }: Props) {
                 <span>Reste</span>
                 <strong>{formatMoney(member.remainingAmount)}</strong>
               </div>
+              {isTopup && (
+                <div>
+                  <span>Total après ajout</span>
+                  <strong>{formatMoney(member.paidAmount + (Number(amount) || 0))}</strong>
+                </div>
+              )}
             </div>
 
             <div className="field">
-              <label htmlFor="payment-amount">Montant versé (FCFA)</label>
+              <label htmlFor="payment-amount">
+                {isTopup ? "Montant à ajouter (FCFA)" : "Montant versé (FCFA)"}
+              </label>
               <input
                 id="payment-amount"
                 ref={amountRef}
@@ -96,8 +106,9 @@ export default function PaymentModal({ member, busy, onClose, onSave }: Props) {
                 onChange={(event) => setAmount(event.target.value)}
               />
               <span className="hint">
-                Un montant inférieur au tarif est enregistré comme acompte. Mettez 0 pour annuler le
-                paiement.
+                {isTopup
+                  ? `Ce montant s'ajoute aux ${formatMoney(member.paidAmount)} déjà versés. Laissez 0 pour ne rien ajouter.`
+                  : "Un montant inférieur au tarif est enregistré comme acompte. Mettez 0 pour annuler le paiement."}
               </span>
             </div>
 

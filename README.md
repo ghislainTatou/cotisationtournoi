@@ -82,7 +82,7 @@ Le projet Supabase gratuit suffit largement pour ce usage. Garde la clé `sb_sec
 ### Administrateur
 
 - Onglet **Gestion des membres** : ajouter, modifier, supprimer un membre.
-- Bouton **Payer / Compléter** : saisir le montant versé. S’il est inférieur au tarif, l’application enregistre un **acompte** ; le reste apparaît dans la liste des restants jusqu’au solde complet.
+- Bouton **Payer / Compléter** : **Payer** enregistre le montant total versé ; **Compléter** ajoute le montant saisi à l’acompte déjà enregistré (le nouveau total est affiché avant validation). S’il reste inférieur au tarif, l’application conserve un **acompte** ; le reste apparaît dans la liste des restants jusqu’au solde complet. **Modifier** (membre déjà payé) remplace le montant total.
 - Onglet **Catégories & tarifs** : changer les montants (10 000 / 5 000 / 2 000…).
 - Onglet **Paramètres** : date limite, nom du tournoi, visibilité de la liste des restants.
 - Boutons en haut : **PDF payés**, **PDF restants**, **CSV**.

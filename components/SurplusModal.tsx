@@ -58,7 +58,7 @@ export default function SurplusModal({
         <div className="modal-body">
           <div className="payment-summary">
             <div>
-              <span>Déjà versé</span>
+              <span>Montant versé</span>
               <strong>{formatMoney(paidAmount)}</strong>
             </div>
             <div>
