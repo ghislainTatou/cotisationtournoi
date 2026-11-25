@@ -1,4 +1,4 @@
-import type { Member, Settings } from "@/lib/types";
+import type { AccountingData, Member, Settings } from "@/lib/types";
 
 export function normalizePhone(value: string): string {
   return value.replace(/[\s().-]/g, "").trim();
@@ -102,6 +102,46 @@ export function exportMembersCsv(rows: Member[], settings: Settings): void {
   const a = document.createElement("a");
   a.href = url;
   a.download = `${settings.tournamentName.replace(/[^\w-]/g, "_")}_cotisations.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export function exportAccountingCsv(accounting: AccountingData, settings: Settings): void {
+  const header = [
+    "Date",
+    "Type",
+    "Libellé",
+    "Observation",
+    "Origine",
+    "Montant",
+    "Solde cumulé",
+  ];
+  const sorted = [...accounting.entries].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  );
+
+  let balance = 0;
+  const lines = sorted.map((entry) => {
+    balance += entry.kind === "income" ? entry.amount : -entry.amount;
+    return [
+      formatDate(entry.createdAt),
+      entry.kind === "income" ? "Entrée" : "Sortie",
+      entry.label,
+      entry.observation ?? "",
+      entry.source === "cotisation" ? "Cotisation" : "Manuel",
+      entry.amount,
+      balance,
+    ]
+      .map(csvSafe)
+      .join(";");
+  });
+
+  const content = `\uFEFF${header.join(";")}\n${lines.join("\n")}`;
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${settings.tournamentName.replace(/[^\w-]/g, "_")}_comptabilite.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }

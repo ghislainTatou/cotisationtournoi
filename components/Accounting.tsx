@@ -3,18 +3,21 @@
 import { useState } from "react";
 import AccountingModal, { type AccountingFormValues } from "@/components/AccountingModal";
 import { del, post } from "@/lib/client-api";
-import type { AccountingData, AccountingKind, AccountingEntry } from "@/lib/types";
-import { formatDate, formatMoney } from "@/lib/utils";
+import { exportAccountingPdf } from "@/lib/pdf";
+import type { AccountingData, AccountingKind, AccountingEntry, Settings } from "@/lib/types";
+import { exportAccountingCsv, formatDate, formatMoney } from "@/lib/utils";
 
 interface Props {
   accounting: AccountingData;
+  settings: Settings;
   isAdmin: boolean;
   refresh: () => Promise<void>;
 }
 
-export default function Accounting({ accounting, isAdmin, refresh }: Props) {
+export default function Accounting({ accounting, settings, isAdmin, refresh }: Props) {
   const [formKind, setFormKind] = useState<AccountingKind | null>(null);
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
@@ -51,6 +54,31 @@ export default function Accounting({ accounting, isAdmin, refresh }: Props) {
     return run(async () => {
       await del(`/api/accounting?id=${encodeURIComponent(entry.manualId!)}`);
     }, "Ligne supprimée.");
+  }
+
+  async function downloadPdf() {
+    setExporting(true);
+    setError("");
+    try {
+      await exportAccountingPdf(accounting, settings);
+      flash("Rapport PDF généré.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Génération du rapport impossible.");
+      window.setTimeout(() => setError(""), 5000);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  function downloadCsv() {
+    setError("");
+    try {
+      exportAccountingCsv(accounting, settings);
+      flash("Rapport CSV généré.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Génération du rapport impossible.");
+      window.setTimeout(() => setError(""), 5000);
+    }
   }
 
   return (
@@ -93,6 +121,12 @@ export default function Accounting({ accounting, isAdmin, refresh }: Props) {
           </div>
           {isAdmin && (
             <div className="toolbar" style={{ marginBottom: 0 }}>
+              <button className="btn btn-ghost btn-sm" disabled={exporting} onClick={downloadPdf}>
+                📄 Rapport PDF
+              </button>
+              <button className="btn btn-ghost btn-sm" disabled={exporting} onClick={downloadCsv}>
+                CSV
+              </button>
               <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => setFormKind("income")}>
                 + Entrée
               </button>

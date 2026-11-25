@@ -295,7 +295,12 @@ export default function Dashboard({ user, onLogout }: Props) {
         )}
 
         {view === "comptabilite" && (
-          <Accounting accounting={data.accounting} isAdmin={isAdmin} refresh={refresh} />
+          <Accounting
+            accounting={data.accounting}
+            settings={data.settings}
+            isAdmin={isAdmin}
+            refresh={refresh}
+          />
         )}
 
         <section className="card">

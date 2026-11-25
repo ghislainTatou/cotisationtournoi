@@ -102,6 +102,7 @@ Le projet Supabase gratuit suffit largement pour ce usage. Garde la clé `sb_sec
 - Une cotisation (même partielle) crée automatiquement une entrée libellée `Cotisation — Nom du membre`. Modifier ou annuler un paiement met aussi à jour le journal.
 - Un don se saisit avec **+ Entrée** ; une dépense (transport, achat…) avec **+ Sortie**.
 - Le solde global = total des entrées − total des sorties.
+- L’administrateur peut tirer le **rapport PDF** ou **CSV** du journal : totaux en tête de page, mouvements classés par date et solde cumulé dans le CSV.
 
 ## Mise à jour automatique
 
