@@ -16,6 +16,7 @@ interface Props {
 
 export default function Accounting({ accounting, settings, isAdmin, refresh }: Props) {
   const [formKind, setFormKind] = useState<AccountingKind | null>(null);
+  const [filter, setFilter] = useState<"all" | AccountingKind>("all");
   const [busy, setBusy] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [notice, setNotice] = useState("");
@@ -81,6 +82,14 @@ export default function Accounting({ accounting, settings, isAdmin, refresh }: P
     }
   }
 
+  const incomeCount = accounting.entries.filter((entry) => entry.kind === "income").length;
+  const expenseCount = accounting.entries.length - incomeCount;
+  const visibleEntries =
+    filter === "all"
+      ? accounting.entries
+      : accounting.entries.filter((entry) => entry.kind === filter);
+  const visibleTotal = visibleEntries.reduce((sum, entry) => sum + entry.amount, 0);
+
   return (
     <>
       {notice && <div className="notice success">{notice}</div>}
@@ -137,10 +146,59 @@ export default function Accounting({ accounting, settings, isAdmin, refresh }: P
           )}
         </div>
 
-        {accounting.entries.length === 0 ? (
+        <div className="tabs" role="group" aria-label="Filtrer le journal comptable">
+          <button
+            type="button"
+            className={`tab ${filter === "all" ? "active" : ""}`}
+            onClick={() => setFilter("all")}
+          >
+            Tout ({accounting.entries.length})
+          </button>
+          <button
+            type="button"
+            className={`tab ${filter === "income" ? "active" : ""}`}
+            onClick={() => setFilter("income")}
+          >
+            Entrées ({incomeCount})
+          </button>
+          <button
+            type="button"
+            className={`tab ${filter === "expense" ? "active" : ""}`}
+            onClick={() => setFilter("expense")}
+          >
+            Sorties ({expenseCount})
+          </button>
+        </div>
+
+        {filter !== "all" && (
+          <p className="card-subtitle" style={{ marginBottom: 12 }}>
+            Total affiché : <strong>{formatMoney(visibleTotal)}</strong> sur {visibleEntries.length}{" "}
+            ligne(s).
+          </p>
+        )}
+
+        {visibleEntries.length === 0 ? (
           <div className="empty">
-            <strong>Aucun mouvement pour le moment</strong>
-            Les cotisations enregistrées apparaîtront ici automatiquement.
+            <strong>
+              {filter === "all"
+                ? "Aucun mouvement pour le moment"
+                : filter === "income"
+                  ? "Aucune entrée pour le moment"
+                  : "Aucune sortie pour le moment"}
+            </strong>
+            {filter === "all"
+              ? "Les cotisations enregistrées apparaîtront ici automatiquement."
+              : "Essayez un autre filtre pour voir les autres mouvements."}
+            {filter !== "all" && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                style={{ marginTop: 12 }}
+                onClick={() => setFilter("all")}
+              >
+                Voir tout
+              </button>
+            )}
           </div>
         ) : (
           <div className="table-wrap">
@@ -157,7 +215,7 @@ export default function Accounting({ accounting, settings, isAdmin, refresh }: P
                 </tr>
               </thead>
               <tbody>
-                {accounting.entries.map((entry) => (
+                {visibleEntries.map((entry) => (
                   <tr key={entry.id}>
                     <td className="phone-cell">{formatDate(entry.createdAt)}</td>
                     <td>
