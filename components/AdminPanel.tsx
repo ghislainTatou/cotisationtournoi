@@ -6,6 +6,7 @@ import type { Category, DashboardData, Member, Role } from "@/lib/types";
 import { formatMoney, toLocalInputValue } from "@/lib/utils";
 import MembersTable from "@/components/MembersTable";
 import PaymentModal from "@/components/PaymentModal";
+import SurplusModal from "@/components/SurplusModal";
 
 interface Props {
   data: DashboardData;
@@ -27,6 +28,13 @@ interface CategoryDraft {
   sortOrder: string;
 }
 
+interface SurplusContext {
+  member: Member;
+  categoryAmount: number;
+  form?: MemberForm;
+  payment?: { amount: number; reference: string };
+}
+
 const emptyMemberForm: MemberForm = {
   fullName: "",
   phone: "",
@@ -43,6 +51,7 @@ export default function AdminPanel({ data, refresh }: Props) {
   const [editing, setEditing] = useState<Member | null>(null);
   const [memberForm, setMemberForm] = useState<MemberForm>(emptyMemberForm);
   const [paymentMember, setPaymentMember] = useState<Member | null>(null);
+  const [surplus, setSurplus] = useState<SurplusContext | null>(null);
   const [importText, setImportText] = useState("");
   const [importErrors, setImportErrors] = useState<string[]>([]);
   const [categoryDrafts, setCategoryDrafts] = useState<CategoryDraft[]>([]);
@@ -116,6 +125,19 @@ export default function AdminPanel({ data, refresh }: Props) {
 
   async function submitMember(event: React.FormEvent) {
     event.preventDefault();
+
+    if (editing) {
+      const category = data.categories.find((c) => c.id === memberForm.categoryId);
+      if (category && category.amount > 0 && editing.paidAmount > category.amount) {
+        setSurplus({
+          member: editing,
+          categoryAmount: category.amount,
+          form: { ...memberForm },
+        });
+        return;
+      }
+    }
+
     await run(async () => {
       if (editing) {
         await patch(`/api/members/${editing.id}`, memberForm);
@@ -133,12 +155,50 @@ export default function AdminPanel({ data, refresh }: Props) {
 
   async function submitPayment(amount: number, reference: string) {
     if (!paymentMember) return;
+
+    const category = data.categories.find((c) => c.id === paymentMember.categoryId);
+    const categoryAmount = category?.amount ?? paymentMember.amount;
+    if (categoryAmount > 0 && amount > categoryAmount) {
+      setSurplus({
+        member: paymentMember,
+        categoryAmount,
+        payment: { amount, reference },
+      });
+      setPaymentMember(null);
+      return;
+    }
+
     await run(async () => {
       await patch(`/api/members/${paymentMember.id}`, {
         payment: { paid: amount > 0, amount, reference },
       });
       setPaymentMember(null);
     }, amount > 0 ? "Paiement enregistré." : "Paiement annulé.");
+  }
+
+  async function chooseSurplus(asApport: boolean) {
+    if (!surplus) return;
+    const context = surplus;
+
+    await run(async () => {
+      if (context.payment) {
+        await patch(`/api/members/${context.member.id}`, {
+          payment: {
+            paid: context.payment.amount > 0,
+            amount: context.payment.amount,
+            reference: context.payment.reference,
+            surplusAsApport: asApport,
+          },
+        });
+      } else if (context.form) {
+        await patch(`/api/members/${context.member.id}`, {
+          ...context.form,
+          surplusAsApport: asApport,
+        });
+        resetMemberForm();
+      }
+      setSurplus(null);
+    }, asApport ? "Cotisation et apport enregistrés." : "Cotisation enregistrée.");
   }
 
   async function cancelPayment(member: Member) {
@@ -209,6 +269,12 @@ export default function AdminPanel({ data, refresh }: Props) {
     }, "Paramètres enregistrés.");
   }
 
+  const selectedCategory = data.categories.find((c) => c.id === memberForm.categoryId);
+  const categorySurplus =
+    editing && selectedCategory && selectedCategory.amount > 0
+      ? editing.paidAmount - selectedCategory.amount
+      : 0;
+
   return (
     <>
       <div className="tabs">
@@ -276,6 +342,12 @@ export default function AdminPanel({ data, refresh }: Props) {
                     </option>
                   ))}
                 </select>
+                {categorySurplus > 0 && (
+                  <span className="hint">
+                    Déjà versé : {formatMoney(editing!.paidAmount)}. Le surplus de{" "}
+                    {formatMoney(categorySurplus)} nécessitera une confirmation.
+                  </span>
+                )}
               </div>
               <div className="field">
                 <label>Rôle</label>
@@ -467,6 +539,17 @@ export default function AdminPanel({ data, refresh }: Props) {
             </form>
           </section>
         </>
+      )}
+
+      {surplus && (
+        <SurplusModal
+          memberName={surplus.member.fullName}
+          paidAmount={surplus.member.paidAmount}
+          categoryAmount={surplus.categoryAmount}
+          busy={busy}
+          onClose={() => setSurplus(null)}
+          onChoose={chooseSurplus}
+        />
       )}
 
       {tab === "settings" && (

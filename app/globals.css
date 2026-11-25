@@ -285,6 +285,7 @@ tbody tr:hover { background: #fbfdfb; }
 .badge.warn { background: #fff3cd; color: #8a5a00; }
 .badge.info { background: #e0f2fe; color: #075985; }
 .badge.expense { background: #fff1f0; color: var(--danger); }
+.badge.apport { background: #f3e8ff; color: #7e22ce; }
 
 .amount-in { color: var(--green-700); font-weight: 700; white-space: nowrap; }
 .amount-out { color: var(--danger); font-weight: 700; white-space: nowrap; }
@@ -487,6 +488,23 @@ textarea { min-height: 110px; resize: vertical; font-family: ui-monospace, SFMon
 }
 .payment-summary span { display: block; font-size: 11px; color: var(--muted); margin-bottom: 3px; }
 .payment-summary strong { font-size: 14px; color: var(--green-800); }
+
+.surplus-intro { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.surplus-option {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+}
+.surplus-option:hover:not(:disabled) { border-color: var(--green-100); background: var(--green-50); }
+.surplus-option:disabled { opacity: 0.6; cursor: default; }
+.surplus-option-title { font-weight: 750; color: var(--ink); font-size: 14px; }
+.surplus-option-detail { font-size: 12px; color: var(--muted); line-height: 1.45; }
 
 @media (max-width: 560px) {
   .modal-backdrop { padding: 12px; align-items: flex-end; }

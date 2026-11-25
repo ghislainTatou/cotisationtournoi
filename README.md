@@ -35,7 +35,7 @@ Application Next.js gratuite pour enregistrer et suivre les cotisations du tourn
 
 2. Crée un projet sur [supabase.com](https://supabase.com) (plan gratuit).
 3. Dans **SQL Editor**, colle et exécute le contenu de [`supabase/schema.sql`](./supabase/schema.sql).
-   Si tu mets à jour un projet déjà installé, exécute seulement [`supabase/accounting.sql`](./supabase/accounting.sql).
+   Si tu mets à jour un projet déjà installé, exécute seulement [`supabase/accounting.sql`](./supabase/accounting.sql), puis [`supabase/apport.sql`](./supabase/apport.sql).
 4. Récupère les identifiants du projet :
    - **URL** : bouton **Connect** du projet, ou **Project Settings → General**.
    - **Clé secrète** : **Project Settings → API Keys → Secret key** (elle commence par `sb_secret_...`).
@@ -100,6 +100,7 @@ Le projet Supabase gratuit suffit largement pour ce usage. Garde la clé `sb_sec
 - Les boutons **+ Entrée** et **+ Sortie** sont réservés à l’administrateur.
 - Chaque ligne du journal contient : date, type, libellé, observation, origine et montant.
 - Une cotisation (même partielle) crée automatiquement une entrée libellée `Cotisation — Nom du membre`. Modifier ou annuler un paiement met aussi à jour le journal.
+- Si un membre a versé plus que le tarif de sa catégorie (notamment après un changement de catégorie), une confirmation est demandée : le surplus peut être enregistré comme **apport**, ce qui crée une seconde ligne `Apport — Nom du membre`. Sans confirmation, seul le montant de la catégorie est comptabilisé.
 - Un don se saisit avec **+ Entrée** ; une dépense (transport, achat…) avec **+ Sortie**.
 - Le solde global = total des entrées − total des sorties.
 - L’administrateur peut tirer le **rapport PDF** ou **CSV** du journal : totaux en tête de page, mouvements classés par date et solde cumulé dans le CSV.

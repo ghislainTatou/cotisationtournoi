@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCategories } from "@/lib/server/data";
+import { getCategories, isMissingSchemaObject } from "@/lib/server/data";
 import { db, errorResponse, readJson } from "@/lib/server/db";
 import { hashPassword } from "@/lib/server/password";
 import { readSession } from "@/lib/server/session";
@@ -16,11 +16,15 @@ interface PatchBody {
   categoryId?: string | null;
   role?: Role;
   resetPassword?: boolean;
+  /** Le surplus éventuel est-il un apport (true) ou doit-il être ignoré (false) ? */
+  surplusAsApport?: boolean;
   payment?: {
     paid: boolean;
     /** Montant versé. Peut être inférieur au tarif : on enregistre alors un acompte. */
     amount?: number | null;
     reference?: string | null;
+    /** Version imbriquée, utilisée par la modale de paiement. */
+    surplusAsApport?: boolean;
   };
 }
 
@@ -28,6 +32,7 @@ export async function PATCH(request: Request, context: Context) {
   try {
     const user = await readSession();
     if (user?.role !== "admin") return errorResponse("Accès réservé à l'administrateur.", 403);
+    const adminId = user.id;
 
     const { id } = await context.params;
     const body = await readJson<PatchBody>(request);
@@ -64,6 +69,8 @@ export async function PATCH(request: Request, context: Context) {
     const oldCategory = categories.find((c) => c.id === existing.category_id);
     const newCategory = categories.find((c) => c.id === nextCategoryId);
     const expectedAmount = newCategory?.amount ?? 0;
+    const surplusAsApport =
+      body.surplusAsApport === true || body.payment?.surplusAsApport === true;
 
     const update: Record<string, unknown> = {
       phone: nextPhone,
@@ -76,20 +83,52 @@ export async function PATCH(request: Request, context: Context) {
     if (body.role === "admin" || body.role === "member") update.role = body.role;
     if (body.resetPassword) update.password_hash = await hashPassword(nextPhone);
 
+    async function writePayment(
+      amount: number,
+      extra: number,
+      options: { touchDate?: boolean; reference?: string | null } = {},
+    ): Promise<void> {
+      const payload: Record<string, unknown> = {
+        member_id: id,
+        amount,
+        extra_amount: extra,
+      };
+      if (options.touchDate) {
+        payload.recorded_by = adminId;
+        payload.paid_at = new Date().toISOString();
+      }
+      if (options.reference !== undefined) payload.reference = options.reference;
+
+      let result = await supabase.from("payments").upsert(payload, { onConflict: "member_id" });
+      if (result.error && isMissingSchemaObject(result.error)) {
+        if (extra > 0) {
+          throw new Error(
+            "La colonne apport n'existe pas encore. Exécute supabase/apport.sql dans le SQL Editor Supabase.",
+          );
+        }
+        const fallback = { ...payload };
+        delete fallback.extra_amount;
+        result = await supabase.from("payments").upsert(fallback, { onConflict: "member_id" });
+      }
+      if (result.error) throw result.error;
+    }
+
     // Montant à enregistrer : null signifie "aucun paiement".
     let paymentAmount: number | null | undefined;
+    let paymentExtra = 0;
     let paymentReference: string | null | undefined;
 
     if (body.payment) {
       if (!body.payment.paid) {
         paymentAmount = null;
       } else {
-        const raw = body.payment.amount ?? expectedAmount;
-        const amount = Number(raw);
+        let amount = Number(body.payment.amount ?? expectedAmount);
         if (!Number.isFinite(amount) || amount < 0) return errorResponse("Montant invalide.", 400);
         if (!Number.isInteger(amount)) return errorResponse("Le montant doit être un nombre entier de FCFA.", 400);
+
         if (expectedAmount > 0 && amount > expectedAmount) {
-          return errorResponse(`Le montant ne peut pas dépasser ${expectedAmount} FCFA pour cette catégorie.`, 400);
+          if (surplusAsApport) paymentExtra = amount - expectedAmount;
+          else amount = expectedAmount;
         }
         paymentAmount = amount === 0 ? null : amount;
         if (body.payment.reference !== undefined) {
@@ -109,36 +148,39 @@ export async function PATCH(request: Request, context: Context) {
         const { error: deleteError } = await supabase.from("payments").delete().eq("member_id", id);
         if (deleteError) throw deleteError;
       } else if (paymentAmount !== undefined) {
-        const paymentUpdate: Record<string, unknown> = {
-          member_id: id,
-          amount: paymentAmount,
-          recorded_by: user.id,
-          paid_at: new Date().toISOString(),
-        };
-        if (paymentReference !== undefined) paymentUpdate.reference = paymentReference;
-
-        const { error: paymentError } = await supabase
-          .from("payments")
-          .upsert(paymentUpdate, { onConflict: "member_id" });
-        if (paymentError) throw paymentError;
+        await writePayment(paymentAmount, paymentExtra, {
+          touchDate: true,
+          reference: paymentReference,
+        });
       }
-    } else if (body.categoryId !== undefined && nextCategoryId !== existing.category_id) {
-      // Un paiement complet suit le nouveau tarif ; un acompte reste inchangé.
+    } else if (
+      body.categoryId !== undefined &&
+      nextCategoryId !== existing.category_id &&
+      Number(existingPayment?.amount ?? 0) > 0
+    ) {
       const oldAmount = oldCategory?.amount ?? 0;
       const previousAmount = Number(existingPayment?.amount ?? 0);
       const wasFull = previousAmount >= oldAmount && (oldAmount > 0 || previousAmount > 0);
 
-      if (wasFull && expectedAmount !== oldAmount) {
-        if (expectedAmount === 0) {
-          const { error: deleteError } = await supabase.from("payments").delete().eq("member_id", id);
-          if (deleteError) throw deleteError;
-        } else {
-          const { error: paymentError } = await supabase
-            .from("payments")
-            .update({ amount: expectedAmount })
-            .eq("member_id", id);
-          if (paymentError) throw paymentError;
-        }
+      let nextAmount = previousAmount;
+      if (expectedAmount === 0) {
+        nextAmount = 0;
+      } else if (previousAmount <= expectedAmount && wasFull && expectedAmount !== oldAmount) {
+        // Un paiement complet suit le nouveau tarif lors d'un changement de catégorie.
+        nextAmount = expectedAmount;
+      }
+
+      let nextExtra = 0;
+      if (expectedAmount > 0 && nextAmount > expectedAmount) {
+        if (surplusAsApport) nextExtra = nextAmount - expectedAmount;
+        else nextAmount = expectedAmount;
+      }
+
+      if (nextAmount === 0) {
+        const { error: deleteError } = await supabase.from("payments").delete().eq("member_id", id);
+        if (deleteError) throw deleteError;
+      } else {
+        await writePayment(nextAmount, nextExtra);
       }
     }
 

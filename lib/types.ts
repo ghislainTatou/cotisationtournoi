@@ -18,6 +18,8 @@ export interface Category {
 export interface Payment {
   id: string;
   amount: number;
+  /** Part du versement au-delà du tarif de la catégorie. */
+  extraAmount: number;
   paidAt: string;
   reference: string | null;
 }
@@ -33,6 +35,8 @@ export interface Member {
   amount: number;
   /** Montant effectivement versé (0 si aucun paiement). */
   paidAmount: number;
+  /** Part du versement comptabilisée comme apport. */
+  extraAmount: number;
   /** Solde restant à régler. */
   remainingAmount: number;
   status: PaymentStatus;
@@ -56,7 +60,7 @@ export interface Stats {
 }
 
 export type AccountingKind = "income" | "expense";
-export type AccountingSource = "cotisation" | "manuel";
+export type AccountingSource = "cotisation" | "apport" | "manuel";
 
 export interface AccountingEntry {
   id: string;

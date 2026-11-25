@@ -12,6 +12,16 @@ import type {
 
 type AnyRow = Record<string, unknown>;
 
+export function isMissingSchemaObject(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return (
+    error.code === "42P01" ||
+    error.code === "PGRST205" ||
+    error.code === "42703" ||
+    /could not find the table|does not exist/i.test(error.message ?? "")
+  );
+}
+
 export const DEFAULT_SETTINGS: Settings = {
   tournamentName: "Tournoi du 28 novembre",
   deadline: "2026-11-28T23:59:00Z",
@@ -53,21 +63,39 @@ export async function getCategories(): Promise<Category[]> {
 }
 
 export async function getMembers(): Promise<Member[]> {
-  const [membersRes, categoriesRes, paymentsRes] = await Promise.all([
+  const [membersRes, categoriesRes] = await Promise.all([
     db()
       .from("members")
       .select("id, phone, full_name, role, category_id, created_at")
       .order("created_at", { ascending: true }),
     db().from("categories").select("id, name, amount"),
-    db()
-      .from("payments")
-      .select("id, member_id, amount, paid_at, reference")
-      .order("paid_at", { ascending: false }),
   ]);
 
   if (membersRes.error) throw membersRes.error;
   if (categoriesRes.error) throw categoriesRes.error;
-  if (paymentsRes.error) throw paymentsRes.error;
+
+  // La colonne extra_amount est ajoutée par supabase/apport.sql. Sans elle,
+  // l'application continue de fonctionner en considérant qu'il n'y a pas d'apport.
+  const firstPayments = await db()
+    .from("payments")
+    .select("id, member_id, amount, extra_amount, paid_at, reference")
+    .order("paid_at", { ascending: false });
+
+  let paymentsRows: AnyRow[];
+  let paymentsError: { code?: string; message?: string } | null;
+
+  if (firstPayments.error && isMissingSchemaObject(firstPayments.error)) {
+    const fallback = await db()
+      .from("payments")
+      .select("id, member_id, amount, paid_at, reference")
+      .order("paid_at", { ascending: false });
+    paymentsRows = (fallback.data ?? []) as AnyRow[];
+    paymentsError = fallback.error;
+  } else {
+    paymentsRows = (firstPayments.data ?? []) as AnyRow[];
+    paymentsError = firstPayments.error;
+  }
+  if (paymentsError) throw paymentsError;
 
   const categories = new Map(
     (categoriesRes.data ?? []).map((row: AnyRow) => [
@@ -77,11 +105,12 @@ export async function getMembers(): Promise<Member[]> {
   );
 
   const payments = new Map(
-    (paymentsRes.data ?? []).map((row: AnyRow) => [
+    paymentsRows.map((row: AnyRow) => [
       String(row.member_id),
       {
         id: String(row.id),
         amount: Number(row.amount),
+        extraAmount: Number(row.extra_amount ?? 0),
         paidAt: String(row.paid_at),
         reference: row.reference ? String(row.reference) : null,
       },
@@ -113,6 +142,7 @@ export async function getMembers(): Promise<Member[]> {
       categoryName: category?.name ?? "Non catégorisé",
       amount: expectedAmount,
       paidAmount,
+      extraAmount: payment?.extraAmount ?? 0,
       remainingAmount,
       status,
       createdAt: String(row.created_at),
@@ -146,14 +176,7 @@ export async function getManualTransactions(): Promise<{
 
   if (error) {
     // Table pas encore créée : l'application reste utilisable et l'UI l'indique.
-    // Supabase/PostgREST renvoie PGRST205 (schéma non rafraîchi) et parfois 42P01.
-    if (
-      error.code === "42P01" ||
-      error.code === "PGRST205" ||
-      /could not find the table|does not exist/i.test(error.message ?? "")
-    ) {
-      return { rows: [], available: false };
-    }
+    if (isMissingSchemaObject(error)) return { rows: [], available: false };
     throw error;
   }
 
@@ -177,9 +200,12 @@ export function buildAccounting(
   manual: AccountingEntry[],
   available: boolean,
 ): AccountingData {
-  const cotisations: AccountingEntry[] = members
+  const automatic: AccountingEntry[] = members
     .filter((member) => member.payment && member.paidAmount > 0)
-    .map((member) => {
+    .flatMap((member) => {
+      const extra = Math.min(member.extraAmount, member.paidAmount);
+      const cotisationAmount = member.paidAmount - extra;
+      const createdAt = member.payment!.paidAt;
       const details = [
         `Catégorie ${member.categoryName}`,
         member.status === "partial" ? "acompte" : "paiement complet",
@@ -188,19 +214,38 @@ export function buildAccounting(
         .filter(Boolean)
         .join(" · ");
 
-      return {
-        id: `cotisation-${member.payment!.id}`,
-        kind: "income" as const,
-        label: `Cotisation — ${member.fullName}`,
-        amount: member.paidAmount,
-        observation: details,
-        createdAt: member.payment!.paidAt,
-        source: "cotisation" as const,
-        manualId: null,
-      };
+      const lines: AccountingEntry[] = [];
+
+      if (cotisationAmount > 0) {
+        lines.push({
+          id: `cotisation-${member.payment!.id}`,
+          kind: "income",
+          label: `Cotisation — ${member.fullName}`,
+          amount: cotisationAmount,
+          observation: details,
+          createdAt,
+          source: "cotisation",
+          manualId: null,
+        });
+      }
+
+      if (extra > 0) {
+        lines.push({
+          id: `apport-${member.payment!.id}`,
+          kind: "income",
+          label: `Apport — ${member.fullName}`,
+          amount: extra,
+          observation: `En plus de la cotisation · ${member.categoryName}`,
+          createdAt,
+          source: "apport",
+          manualId: null,
+        });
+      }
+
+      return lines;
     });
 
-  const entries = [...cotisations, ...manual].sort(
+  const entries = [...automatic, ...manual].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 

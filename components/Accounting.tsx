@@ -168,8 +168,20 @@ export default function Accounting({ accounting, settings, isAdmin, refresh }: P
                     <td className="name-cell">{entry.label}</td>
                     <td>{entry.observation ?? "—"}</td>
                     <td>
-                      <span className={`badge ${entry.source === "cotisation" ? "info" : "warn"}`}>
-                        {entry.source === "cotisation" ? "Auto" : "Manuel"}
+                      <span
+                        className={`badge ${
+                          entry.source === "cotisation"
+                            ? "info"
+                            : entry.source === "apport"
+                              ? "apport"
+                              : "warn"
+                        }`}
+                      >
+                        {entry.source === "cotisation"
+                          ? "Auto"
+                          : entry.source === "apport"
+                            ? "Apport"
+                            : "Manuel"}
                       </span>
                     </td>
                     <td style={{ textAlign: "right" }}>

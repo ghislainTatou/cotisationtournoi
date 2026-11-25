@@ -131,7 +131,7 @@ export function exportAccountingCsv(accounting: AccountingData, settings: Settin
       entry.kind === "income" ? "Entrée" : "Sortie",
       entry.label,
       entry.observation ?? "",
-      entry.source === "cotisation" ? "Cotisation" : "Manuel",
+      entry.source === "cotisation" ? "Cotisation" : entry.source === "apport" ? "Apport" : "Manuel",
       entry.amount,
       balance,
     ]

@@ -141,7 +141,7 @@ export async function exportAccountingPdf(
     entry.kind === "income" ? "Entrée" : "Sortie",
     entry.label,
     entry.observation ?? "-",
-    entry.source === "cotisation" ? "Cotisation" : "Manuel",
+    entry.source === "cotisation" ? "Cotisation" : entry.source === "apport" ? "Apport" : "Manuel",
     `${entry.kind === "income" ? "+" : "-"}${formatMoney(entry.amount)}`,
   ]);
 

@@ -23,10 +23,12 @@ create table if not exists public.members (
 
 -- amount = montant effectivement versé. Un montant inférieur au tarif de la
 -- catégorie représente un acompte ; le solde est calculé par l'application.
+-- extra_amount = part du versement qui dépasse le tarif (apport en plus de la cotisation).
 create table if not exists public.payments (
   id uuid primary key default gen_random_uuid(),
   member_id uuid not null unique references public.members(id) on delete cascade,
   amount integer not null check (amount >= 0),
+  extra_amount integer not null default 0 check (extra_amount >= 0),
   paid_at timestamptz not null default now(),
   reference text,
   recorded_by uuid references public.members(id) on delete set null
